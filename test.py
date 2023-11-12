@@ -4,13 +4,16 @@ import numpy as np
 from importlib import import_module
 import argparse
 import csv
-
+import os
 
 parser = argparse.ArgumentParser(description='Chinese Text Classification')
-parser.add_argument('--model', type=str, required=True, help='choose a model: Bert, ERNIE')
+parser.add_argument('--model', type=str, required=True, help='choose a model: Bert, ERNIE', default='bert')
+parser.add_argument('--dataset', type=str, help='choose a dataset', default='THUCNews')
+parser.add_argument('--out_dir', type=str, help='output dir', default='./THUCNews')
 args = parser.parse_args()
 
 PAD, CLS = '[PAD]', '[CLS]'  # padding符号, bert中综合信息符号
+
 
 def load_dataset(contents, ids, pad_size=32):
     outs = []
@@ -33,6 +36,7 @@ def load_dataset(contents, ids, pad_size=32):
                 seq_len = pad_size
         outs.append((token_ids, id, seq_len, mask))
     return outs
+
 
 class DatasetIterater(object):
     def __init__(self, batches, batch_size, device):
@@ -84,12 +88,13 @@ def build_iterator(dataset, config):
     iter = DatasetIterater(dataset, 1, config.device)
     return iter
 
-if __name__ == '__main__':
-    dataset = 'THUCNews'  # 数据集
 
+if __name__ == '__main__':
     model_name = args.model  # bert
     x = import_module('models.' + model_name)
-    config = x.Config(dataset)
+    config = x.Config(args)
+    if os.path.exists(args.out_dir + '/saved_dict') is False:
+        os.makedirs(args.out_dir + '/saved_dict')
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed_all(1)
@@ -109,12 +114,11 @@ if __name__ == '__main__':
                 except:
                     print(index, row)
             index += 1
-
     test = load_dataset(titles, ids, config.pad_size)
     print(len(test))
     test_iter = build_iterator(test, config)
 
-    submit = [['id','label']]
+    submit = [['id', 'label']]
     # train
     model = x.Model(config).to(config.device)
     model.load_state_dict(torch.load(config.save_path))
@@ -125,10 +129,9 @@ if __name__ == '__main__':
             predic = torch.max(outputs.data, 1)[1].cpu().numpy()
             submit.append([id[0], predic[0]])
 
-    #python2可以用file替代open
-    with open("test.csv", "a", encoding='utf-8', newline='') as csvfile:
+    # python2可以用file替代open
+    outfile = os.path.join(args.out_dir, "test.csv")
+    with open(outfile, "a", encoding='utf-8', newline='') as csvfile:
         writer = csv.writer(csvfile)
         for row in submit:
             writer.writerow(row)
-
-
