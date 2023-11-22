@@ -15,7 +15,7 @@ def random_dic(dicts):
         new_dic[key] = dicts.get(key)
     return new_dic
 
-def build_dataset(config):
+def build_dataset(config,fullText):
     id2title = dict()
     title2label = dict()
 
@@ -28,6 +28,11 @@ def build_dataset(config):
                     id2title[row[0]] = row[1]
                 except:
                     print(index, row)
+                if fullText:
+                    try:
+                        id2title[row[0]] += row[2]
+                    except:
+                        print(index, row)
             index += 1
 
     with open('./THUCNews/data/Train_DataSet_Label.csv', 'r', encoding='utf-8') as f:
@@ -56,7 +61,7 @@ def build_dataset(config):
             test_labels.append(v)
         index += 1
 
-    def load_dataset(contents, labels, pad_size=32):
+    def load_dataset(contents, labels, pad_size=512):
         outs = []
         for i in range(len(contents)):
             content = contents[i]

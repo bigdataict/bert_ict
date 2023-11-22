@@ -12,6 +12,9 @@ parser = argparse.ArgumentParser(description='Chinese Text Classification')
 parser.add_argument('--model', type=str, required=True, help='choose a model: Bert, ERNIE', default='bert')
 parser.add_argument('--dataset', type=str, help='choose a dataset', default='THUCNews')
 parser.add_argument('--out_dir', type=str, help='output dir', default='./THUCNews')
+parser.add_argument('--full_text', type=bool,help='is full text?', default=True)
+parser.add_argument('--learning_rate', type=float,help='learning rate?', default=2e-5)
+parser.add_argument('--pretrain', type=str, help='choose a pretrain model',default='bert')
 args = parser.parse_args()
 
 if __name__ == '__main__':
@@ -27,7 +30,7 @@ if __name__ == '__main__':
 
     start_time = time.time()
     print("Loading data...")
-    train_data, test_data = build_dataset(config)
+    train_data, test_data = build_dataset(config,args.full_text)
     train_iter = build_iterator(train_data, config)
     # dev_iter = build_iterator(dev_data, config)
     test_iter = build_iterator(test_data, config)

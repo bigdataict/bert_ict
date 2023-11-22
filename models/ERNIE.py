@@ -22,8 +22,8 @@ class Config(object):
         self.num_epochs = 3                                             # epoch数
         self.batch_size = 128                                           # mini-batch大小
         self.pad_size = 32                                              # 每句话处理成的长度(短填长切)
-        self.learning_rate = 5e-5                                       # 学习率
-        self.bert_path = './ERNIE_pretrain'
+        self.learning_rate = args.learning_rate                         # 学习率
+        self.bert_path = './ERNIE_pretrain'+args.pretrain
         self.tokenizer = BertTokenizer.from_pretrained(self.bert_path)
         print(self.tokenizer)
         self.hidden_size = 768

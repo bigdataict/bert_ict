@@ -10,12 +10,15 @@ parser = argparse.ArgumentParser(description='Chinese Text Classification')
 parser.add_argument('--model', type=str, required=True, help='choose a model: Bert, ERNIE', default='bert')
 parser.add_argument('--dataset', type=str, help='choose a dataset', default='THUCNews')
 parser.add_argument('--out_dir', type=str, help='output dir', default='./THUCNews')
+parser.add_argument('--full_text', type=bool, help='is full text?', default=True)
+parser.add_argument('--learning_rate', type=float, help='learning rate?', default=2e-5)
+parser.add_argument('--pretrain', type=str, help='choose a pretrain model', default='bert')
 args = parser.parse_args()
 
 PAD, CLS = '[PAD]', '[CLS]'  # padding符号, bert中综合信息符号
 
 
-def load_dataset(contents, ids, pad_size=32):
+def load_dataset(contents, ids, pad_size=512):
     outs = []
     for i in range(len(contents)):
         content = contents[i]
@@ -113,6 +116,11 @@ if __name__ == '__main__':
                     ids.append(row[0])
                 except:
                     print(index, row)
+                if args.full_text:
+                    try:
+                        titles[-1] += row[2]
+                    except:
+                        print(index, row)
             index += 1
     test = load_dataset(titles, ids, config.pad_size)
     print(len(test))
