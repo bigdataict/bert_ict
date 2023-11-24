@@ -8,6 +8,7 @@ from importlib import import_module
 import argparse
 from utils import build_dataset, build_iterator, get_time_dif
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 parser = argparse.ArgumentParser(description='Chinese Text Classification')
 parser.add_argument('--model', type=str, required=True, help='choose a model: Bert, ERNIE', default='bert')
 parser.add_argument('--dataset', type=str, help='choose a dataset', default='THUCNews')
