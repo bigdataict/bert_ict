@@ -129,7 +129,7 @@ if __name__ == '__main__':
     model = x.Model(config).to(config.device)
 
 
-    def test(model, iter, model_name):
+    def test_(model, iter, model_name):
         submit = [['id', 'label']]
         model.load_state_dict(torch.load(config.save_path+model_name+'.ckpt'))
         model.eval()
@@ -145,5 +145,5 @@ if __name__ == '__main__':
             for row in submit:
                 writer.writerow(row)
 
-    test(model, build_iterator(test, config), "best_train")
-    test(model, build_iterator(test, config), "best_test")
+    test_(model, build_iterator(test, config), "best_train")
+    test_(model, build_iterator(test, config), "best_test")
