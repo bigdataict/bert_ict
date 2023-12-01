@@ -63,7 +63,7 @@ def train(config, model, train_iter, test_iter, current_fold):
                 test_acc, test_loss, test_f1 = evaluate(model, test_iter)
                 if test_f1 > test_best_f1:
                     test_best_f1 = test_f1
-                    torch.save(model.state_dict(), config.save_path)
+                    torch.save(model.state_dict(), config.save_path+str(current_fold)+'.ckpt')
                     improve = '*'
                     last_improve = total_batch
                 else:
