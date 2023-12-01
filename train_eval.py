@@ -43,6 +43,8 @@ def train(config, model, train_iter, test_iter, current_fold):
                          t_total=len(train_iter) * config.num_epochs)
     total_batch = 0  # 记录进行到多少batch
     best_record = 0
+    last_improve = 0  # 记录上次验证集loss下降的batch数
+    flag = False  # 记录是否很久没有效果提升
 
     model.train()
     for epoch in range(config.num_epochs):
@@ -58,13 +60,12 @@ def train(config, model, train_iter, test_iter, current_fold):
                 true = labels.data.cpu()
                 predic = torch.max(outputs.data, 1)[1].cpu()
                 train_acc = metrics.accuracy_score(true, predic)
-                test_acc, test_loss = evaluate(model, test_iter)
-
-                if train_acc + test_acc > best_record:
-                    print("save para")
-                    best_record = train_acc + test_acc
-                    torch.save(model.state_dict(), config.save_path+str(current_fold)+'.ckpt')
+                test_acc, test_loss = evaluate(config, model, test_iter)
+                if test_loss < test_best_loss:
+                    test_best_loss = test_loss
+                    torch.save(model.state_dict(), config.save_path)
                     improve = '*'
+                    last_improve=total_batch
                 else:
                     improve = ''
 
@@ -73,6 +74,13 @@ def train(config, model, train_iter, test_iter, current_fold):
                 print(msg.format(total_batch, loss.item(), train_acc, test_loss, test_acc, time_dif, improve))
                 model.train()
             total_batch += 1
+            if total_batch - last_improve > config.require_improvement:
+                # 验证集loss超过1000batch没下降，结束训练
+                print("No optimization for a long time, auto-stopping...")
+                flag = True
+                break
+        if flag:
+            break
 
 
 

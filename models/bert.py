@@ -13,12 +13,13 @@ class Config(object):
         self.save_path = args.out_dir + '/saved_dict/'
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  # 设备
         self.k_fold = 10
-        self.num_classes = 4
+        self.num_classes = 3
         self.num_epochs = 7  # epoch数
         self.batch_size = 16  # mini-batch大小
         self.pad_size = 512  # 每句话处理成的长度(短填长切)
-        self.learning_rate = 1e-5  # 学习率
-        self.bert_path = './bert_pretrain'
+        self.require_improvement = 1000  # 若超过1000batch效果还没提升，则提前结束训练
+        self.learning_rate = args.learning_rate  # 学习率
+        self.bert_path = './'+args.pretrain
         self.tokenizer = BertTokenizer.from_pretrained(self.bert_path)
         self.hidden_size = 768
 

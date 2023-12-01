@@ -14,7 +14,7 @@ def random_dic(dicts):
         new_dic[key] = dicts.get(key)
     return new_dic
 
-def build_dataset(config):
+def build_dataset(config,fullText):
     id2title = dict()
     id2label = dict()
     id2content = dict()

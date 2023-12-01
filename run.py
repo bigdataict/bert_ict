@@ -13,6 +13,8 @@ parser = argparse.ArgumentParser(description='Chinese Text Classification')
 parser.add_argument('--model', type=str, help='choose a model: Bert, ERNIE', default='bert')
 parser.add_argument('--dataset', type=str, help='choose a dataset', default='THUCNews')
 parser.add_argument('--out_dir', type=str, help='output dir', default='./THUCNews')
+parser.add_argument('--learning_rate', type=float,help='learning rate?', default=2e-5)
+parser.add_argument('--pretrain', type=str, help='choose a pretrain model', default='bert_pretrain')
 args = parser.parse_args()
 
 if __name__ == '__main__':
