@@ -10,7 +10,7 @@ from utils import build_dataset, build_iterator, get_time_dif
 
 os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 parser = argparse.ArgumentParser(description='Chinese Text Classification')
-parser.add_argument('--model', type=str, required=True, help='choose a model: Bert, ERNIE', default='bert')
+parser.add_argument('--model', type=str, help='choose a model: Bert, ERNIE', default='bert')
 parser.add_argument('--dataset', type=str, help='choose a dataset', default='THUCNews')
 parser.add_argument('--out_dir', type=str, help='output dir', default='./THUCNews')
 args = parser.parse_args()
@@ -21,20 +21,18 @@ if __name__ == '__main__':
     config = x.Config(args)
     if os.path.exists(args.out_dir + '/saved_dict') is False:
         os.makedirs(args.out_dir + '/saved_dict')
+
     np.random.seed(1)
     torch.manual_seed(1)
     torch.cuda.manual_seed_all(1)
     torch.backends.cudnn.deterministic = True  # 保证每次结果一样
 
-    start_time = time.time()
     print("Loading data...")
-    train_data, test_data = build_dataset(config)
-    train_iter = build_iterator(train_data, config)
-    # dev_iter = build_iterator(dev_data, config)
-    test_iter = build_iterator(test_data, config)
-    time_dif = get_time_dif(start_time)
-    print("Time usage:", time_dif)
-
-    # train
-    model = x.Model(config).to(config.device)
-    train(config, model, train_iter, test_iter)
+    trains, tests = build_dataset(config)
+    for i in range(config.k_fold):
+        train_iter = build_iterator(trains[i], config)
+        test_iter = build_iterator(tests[i], config)
+        # train
+        print("No: "+str(i)+" fold")
+        model = x.Model(config).to(config.device)
+        train(config, model, train_iter, test_iter, i)

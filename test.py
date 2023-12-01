@@ -6,24 +6,25 @@ import argparse
 import csv
 import os
 
+os.environ['CUDA_VISIBLE_DEVICES'] = '3'
 parser = argparse.ArgumentParser(description='Chinese Text Classification')
-parser.add_argument('--model', type=str, required=True, help='choose a model: Bert, ERNIE', default='bert')
+parser.add_argument('--model', type=str, help='choose a model: Bert, ERNIE', default='bert')
 parser.add_argument('--dataset', type=str, help='choose a dataset', default='THUCNews')
 parser.add_argument('--out_dir', type=str, help='output dir', default='./THUCNews')
-parser.add_argument('--full_text', type=bool, help='is full text?', default=True)
-parser.add_argument('--learning_rate', type=float, help='learning rate?', default=2e-5)
-parser.add_argument('--pretrain', type=str, help='choose a pretrain model', default='bert_pretrain')
 args = parser.parse_args()
 
 PAD, CLS = '[PAD]', '[CLS]'  # padding符号, bert中综合信息符号
 
 
-def load_dataset(contents, ids, pad_size=512):
+def load_dataset(titles, contents, ids, pad_size=512):
     outs = []
     for i in range(len(contents)):
+        title = titles[i]
         content = contents[i]
         id = ids[i]
-        token = config.tokenizer.tokenize(content)
+        fore_len = int((pad_size - len(title)))
+        token = title + content[0:fore_len]
+        token = config.tokenizer.tokenize(token)
         token = [CLS] + token
         seq_len = len(token)
         mask = []
@@ -39,6 +40,7 @@ def load_dataset(contents, ids, pad_size=512):
                 seq_len = pad_size
         outs.append((token_ids, id, seq_len, mask))
     return outs
+
 
 
 class DatasetIterater(object):
@@ -98,13 +100,10 @@ if __name__ == '__main__':
     config = x.Config(args)
     if os.path.exists(args.out_dir + '/saved_dict') is False:
         os.makedirs(args.out_dir + '/saved_dict')
-    np.random.seed(1)
-    torch.manual_seed(1)
-    torch.cuda.manual_seed_all(1)
-    torch.backends.cudnn.deterministic = True  # 保证每次结果一样
 
     ids = []
     titles = []
+    contents = []
 
     index = 0
     with open('./THUCNews/data/Test_DataSet.csv', 'r', encoding='utf-8') as f:
@@ -112,34 +111,34 @@ if __name__ == '__main__':
         for row in csv_reader:
             if index > 0:
                 try:
+                    contents.append(row[2])
                     titles.append(row[1])
                     ids.append(row[0])
                 except:
-                    print(index, row)
-                if args.full_text:
-                    try:
-                        titles[-1] += row[2]
-                    except:
-                        print(index, row)
+                    titles.append(row[1])
+                    ids.append(row[0])
+                    contents.append("")
             index += 1
-    test = load_dataset(titles, ids, config.pad_size)
-    print(len(test))
-    test_iter = build_iterator(test, config)
-
-    submit = [['id', 'label']]
+    test = load_dataset(titles, contents, ids, config.pad_size)
     # train
     model = x.Model(config).to(config.device)
-    model.load_state_dict(torch.load(config.save_path))
-    model.eval()
-    with torch.no_grad():
-        for (title, id) in test_iter:
-            outputs = model(title)
-            predic = torch.max(outputs.data, 1)[1].cpu().numpy()
-            submit.append([id[0], predic[0]])
 
-    # python2可以用file替代open
-    outfile = os.path.join(args.out_dir, "test.csv")
-    with open(outfile, "a", encoding='utf-8', newline='') as csvfile:
-        writer = csv.writer(csvfile)
-        for row in submit:
-            writer.writerow(row)
+
+    def evaluate(model, iter, model_name):
+        submit = [['id', 'label']]
+        model.load_state_dict(torch.load(config.save_path+model_name+'.ckpt'))
+        model.eval()
+        with torch.no_grad():
+            for (title, id) in iter:
+                outputs = model(title)
+                predic = torch.max(outputs.data, 1)[1].cpu().numpy()
+                submit.append([id[0], predic[0]])
+
+        outfile = os.path.join(args.out_dir, model_name+".csv")
+        with open(outfile, "a", encoding='utf-8', newline='') as csvfile:
+            writer = csv.writer(csvfile)
+            for row in submit:
+                writer.writerow(row)
+    test_iter = build_iterator(test, config)
+    for i in range(config.k_fold):
+        evaluate(model, test_iter, str(i))

@@ -6,7 +6,6 @@ import csv
 import random
 PAD, CLS = '[PAD]', '[CLS]'  # padding符号, bert中综合信息符号
 
-
 def random_dic(dicts):
     dict_key_ls = list(dicts.keys())
     random.shuffle(dict_key_ls)
@@ -15,9 +14,11 @@ def random_dic(dicts):
         new_dic[key] = dicts.get(key)
     return new_dic
 
-def build_dataset(config,fullText):
+def build_dataset(config):
     id2title = dict()
-    title2label = dict()
+    id2label = dict()
+    id2content = dict()
+    k_fold = config.k_fold
 
     index = 0
     with open('./THUCNews/data/Train_DataSet.csv', 'r', encoding='utf-8') as f:
@@ -25,52 +26,85 @@ def build_dataset(config,fullText):
         for row in csv_reader:
             if index > 0:
                 try:
-                    id2title[row[0]] = row[1] + row[2]
+                    id2title[row[0]] = row[1]
+                    id2content[row[0]] = row[2]
                 except:
-                    print(index, row)
+                    pass
             index += 1
 
     with open('./THUCNews/data/Train_DataSet_Label.csv', 'r', encoding='utf-8') as f:
         csv_reader = csv.reader(f)
         for row in csv_reader:
-            if row[0] in id2title:
-                title = id2title[row[0]]
-                title2label[title] = row[1]
+            id = row[0]
+            if id in id2title and id in id2content:
+                id2label[id] = row[1]
 
-    title2label = random_dic(title2label)
+    id2label = random_dic(id2label)
+    test_len = int(len(id2label)/k_fold)
+
+    trainsets_title = []
+    trainsets_content = []
+    trainsets_label = []
+    testsets_title = []
+    testsets_content = []
+    testsets_label = []
 
 
-    train_contents = list()
-    train_labels = list()
+    test_titles = list()
     test_contents = list()
     test_labels = list()
 
-    index = 0
-    i1 = 734
-    i2 = i1
-    for (k, v) in title2label.items():
-        if v == 1:
-            if i1 < 0:
-                test_labels.append(v)
-                test_contents.append(k)
+    flag = 0
+    for (k, v) in id2label.items():
+        if flag <= test_len:
+            test_titles.append(id2title[k])
+            test_contents.append(id2content[k])
+            test_labels.append(v)
+        else:
+            testsets_title.append(test_titles)
+            testsets_content.append(test_contents)
+            testsets_label.append(test_labels)
+            test_titles = list()
+            test_contents = list()
+            test_labels = list()
+            flag = 0
+            test_titles.append(id2title[k])
+            test_contents.append(id2content[k])
+            test_labels.append(v)
+        flag += 1
+    testsets_title.append(test_titles)
+    testsets_content.append(test_contents)
+    testsets_label.append(test_labels)
+    print("len k_datasets:", len(testsets_title))
+    for i in range(k_fold):
+        train_titles = list()
+        train_contents = list()
+        train_labels = list()
+        for j in range(k_fold):
+            if j == i:
+                print("No:",i,"test len:",len(testsets_title[i]))
                 continue
-            i1 -= 1
-        elif v == 2:
-            if i2 < 0:
-                test_labels.append(v)
-                test_contents.append(k)
-                continue
-            i2 -= 1
-        train_contents.append(k)
-        train_labels.append(v)
-        index += 1
+            train_titles += testsets_title[j]
+            train_contents += testsets_content[j]
+            train_labels += testsets_label[j]
+        trainsets_title.append(train_titles)
+        trainsets_content.append(train_contents)
+        trainsets_label.append(train_labels)
+        print("trainset len:",len(train_titles))
 
-    def load_dataset(contents, labels, pad_size=512):
+
+    def load_dataset(titles, contents, labels, pad_size=512):
         outs = []
+        num0 = 0
+        num1 = 0
+        num2 = 0
         for i in range(len(contents)):
+            title = titles[i]
             content = contents[i]
             label = labels[i]
-            token = config.tokenizer.tokenize(content)
+            fore_len = int((pad_size-len(title)))
+            token = title + content[0:fore_len]
+            token = config.tokenizer.tokenize(token)
             token = [CLS] + token
             seq_len = len(token)
             mask = []
@@ -85,13 +119,20 @@ def build_dataset(config,fullText):
                     token_ids = token_ids[:pad_size]
                     seq_len = pad_size
             outs.append((token_ids, int(label), seq_len, mask))
+            if label == '0': num0 += 1
+            if label == '1': num1 += 1
+            if label == '2': num2 += 1
+        print(f"ratio {num0} : {num1} : {num2}")
         return outs
-    train = load_dataset(train_contents, train_labels, config.pad_size)
-    #dev = load_dataset(config.dev_path, config.pad_size)
-    test = load_dataset(test_contents, test_labels,  config.pad_size)
+    trains = []
+    tests = []
+    for i in range(k_fold):
+        train = load_dataset(trainsets_title[i], trainsets_content[i], trainsets_label[i], config.pad_size)
+        test = load_dataset(testsets_title[i], testsets_content[i], testsets_label[i],  config.pad_size)
+        trains.append(train)
+        tests.append(test)
 
-    print(f'train set:{len(train)}, test set:{len(test)}')
-    return train, test #,dev
+    return trains, tests #,dev
 
 
 class DatasetIterater(object):
