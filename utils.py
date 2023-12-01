@@ -15,10 +15,9 @@ def random_dic(dicts):
         new_dic[key] = dicts.get(key)
     return new_dic
 
-def build_dataset(config):
+def build_dataset(config,fullText):
     id2title = dict()
-    id2label = dict()
-    id2content = dict()
+    title2label = dict()
 
     index = 0
     with open('./THUCNews/data/Train_DataSet.csv', 'r', encoding='utf-8') as f:
@@ -26,8 +25,7 @@ def build_dataset(config):
         for row in csv_reader:
             if index > 0:
                 try:
-                    id2title[row[0]] = row[1]
-                    id2content[row[0]] = row[2]
+                    id2title[row[0]] = row[1] + row[2]
                 except:
                     print(index, row)
             index += 1
@@ -35,43 +33,44 @@ def build_dataset(config):
     with open('./THUCNews/data/Train_DataSet_Label.csv', 'r', encoding='utf-8') as f:
         csv_reader = csv.reader(f)
         for row in csv_reader:
-            id = row[0]
-            if id in id2title and id in id2content:
-                id2label[id] = row[1]
+            if row[0] in id2title:
+                title = id2title[row[0]]
+                title2label[title] = row[1]
 
-    id2label = random_dic(id2label)
-    total_len = len(id2label)
-    train_len = int(0.9*total_len)
+    title2label = random_dic(title2label)
 
-    train_titles = list()
+
     train_contents = list()
     train_labels = list()
-    test_titles = list()
     test_contents = list()
     test_labels = list()
 
     index = 0
-    for (k, v) in id2label.items():
-        if index < train_len:
-            train_titles.append(id2title[k])
-            train_contents.append(id2content[k])
-            train_labels.append(v)
-        else:
-            test_titles.append(id2title[k])
-            test_contents.append(id2content[k])
-            test_labels.append(v)
+    i1 = 734
+    i2 = i1
+    for (k, v) in title2label.items():
+        if v == 1:
+            if i1 < 0:
+                test_labels.append(v)
+                test_contents.append(k)
+                continue
+            i1 -= 1
+        elif v == 2:
+            if i2 < 0:
+                test_labels.append(v)
+                test_contents.append(k)
+                continue
+            i2 -= 1
+        train_contents.append(k)
+        train_labels.append(v)
         index += 1
 
-    def load_dataset(titles, contents, labels, pad_size=512):
+    def load_dataset(contents, labels, pad_size=512):
         outs = []
         for i in range(len(contents)):
-            title = titles[i]
             content = contents[i]
             label = labels[i]
-            fore_len = int((pad_size-len(title))/2)
-            tail_len = len(content) - fore_len + 2
-            token = title + content[0:fore_len] + content[tail_len:-1]
-            token = config.tokenizer.tokenize(token)
+            token = config.tokenizer.tokenize(content)
             token = [CLS] + token
             seq_len = len(token)
             mask = []
@@ -87,9 +86,9 @@ def build_dataset(config):
                     seq_len = pad_size
             outs.append((token_ids, int(label), seq_len, mask))
         return outs
-    train = load_dataset(train_titles, train_contents, train_labels, config.pad_size)
-    test = load_dataset(test_titles, test_contents, test_labels,  config.pad_size)
+    train = load_dataset(train_contents, train_labels, config.pad_size)
     #dev = load_dataset(config.dev_path, config.pad_size)
+    test = load_dataset(test_contents, test_labels,  config.pad_size)
 
     print(f'train set:{len(train)}, test set:{len(test)}')
     return train, test #,dev

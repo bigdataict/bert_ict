@@ -43,11 +43,6 @@ def train(config, model, train_iter, test_iter):
                          t_total=len(train_iter) * config.num_epochs)
     total_batch = 0  # 记录进行到多少batch
     test_best_acc = 0
-    train_best_acc = 0
-    best_train_testacc = 0
-    best_test_trainacc = 0
-    threadhold = 0.03
-
     last_improve = 0  # 记录上次验证集loss下降的batch数
     flag = False  # 记录是否很久没有效果提升
     model.train()
@@ -65,16 +60,9 @@ def train(config, model, train_iter, test_iter):
                 predic = torch.max(outputs.data, 1)[1].cpu()
                 train_acc = metrics.accuracy_score(true, predic)
                 test_acc, test_loss = evaluate(config, model, test_iter)
-                if train_acc > train_best_acc or (abs(train_acc-train_best_acc) < threadhold and test_acc > best_train_testacc):
-                    train_best_acc = train_acc
-                    best_train_testacc = test_acc
-                    torch.save(model.state_dict(), config.save_path+'best_train.ckpt')
-                    last_improve = total_batch
-
-                if test_acc > test_best_acc or (abs(test_acc-test_best_acc) < threadhold and train_acc > best_test_trainacc):
+                if test_acc > test_best_acc:
                     test_best_acc = test_acc
-                    best_test_trainacc = train_acc
-                    torch.save(model.state_dict(), config.save_path+'best_test.ckpt')
+                    torch.save(model.state_dict(), config.save_path)
                     improve = '*'
                     last_improve = total_batch
                 else:
