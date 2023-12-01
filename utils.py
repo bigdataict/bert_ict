@@ -14,7 +14,7 @@ def random_dic(dicts):
         new_dic[key] = dicts.get(key)
     return new_dic
 
-def build_dataset(config,fullText):
+def build_dataset(config):
     id2title = dict()
     id2label = dict()
     id2content = dict()
@@ -82,7 +82,7 @@ def build_dataset(config,fullText):
         train_labels = list()
         for j in range(k_fold):
             if j == i:
-                print("No:",i,"test len:",len(testsets_title[i]))
+                print("No:",i,"test len:",len(testsets_title[i]), end=' ')
                 continue
             train_titles += testsets_title[j]
             train_contents += testsets_content[j]

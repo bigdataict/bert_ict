@@ -42,7 +42,7 @@ def train(config, model, train_iter, test_iter, current_fold):
                          warmup=0.05,
                          t_total=len(train_iter) * config.num_epochs)
     total_batch = 0  # 记录进行到多少batch
-    best_record = 0
+    test_best_f1 = 0
     last_improve = 0  # 记录上次验证集loss下降的batch数
     flag = False  # 记录是否很久没有效果提升
 
@@ -60,18 +60,18 @@ def train(config, model, train_iter, test_iter, current_fold):
                 true = labels.data.cpu()
                 predic = torch.max(outputs.data, 1)[1].cpu()
                 train_acc = metrics.accuracy_score(true, predic)
-                test_acc, test_loss = evaluate(config, model, test_iter)
-                if test_loss < test_best_loss:
-                    test_best_loss = test_loss
+                test_acc, test_loss, test_f1 = evaluate(model, test_iter)
+                if test_f1 > test_best_f1:
+                    test_best_f1 = test_f1
                     torch.save(model.state_dict(), config.save_path)
                     improve = '*'
-                    last_improve=total_batch
+                    last_improve = total_batch
                 else:
                     improve = ''
 
                 time_dif = get_time_dif(start_time)
-                msg = 'Iter: {0:>6},  Train Loss: {1:>5.2},  Train Acc: {2:>6.2%},  Val Loss: {3:>5.2},  Val Acc: {4:>6.2%},  Time: {5} {6}'
-                print(msg.format(total_batch, loss.item(), train_acc, test_loss, test_acc, time_dif, improve))
+                msg = 'Iter: {0:>6},  Train Loss: {1:>5.2},  Train Acc: {2:>6.2%},  Val Loss: {3:>5.2},  Val Acc: {4:>6.2%},  Val f1: {5>6.2%},  Time: {6} {7}'
+                print(msg.format(total_batch, loss.item(), train_acc, test_loss, test_acc, test_f1, time_dif, improve))
                 model.train()
             total_batch += 1
             if total_batch - last_improve > config.require_improvement:
@@ -81,7 +81,6 @@ def train(config, model, train_iter, test_iter, current_fold):
                 break
         if flag:
             break
-
 
 
 def evaluate(model, data_iter):
@@ -100,5 +99,6 @@ def evaluate(model, data_iter):
             predict_all = np.append(predict_all, predic)
 
     acc = metrics.accuracy_score(labels_all, predict_all)
+    f1score = metrics.f1_score(labels_all, predict_all, average='macro')
 
-    return acc, loss_total / len(data_iter)
+    return acc, loss_total / len(data_iter), f1score

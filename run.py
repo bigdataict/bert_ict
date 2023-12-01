@@ -15,6 +15,8 @@ parser.add_argument('--dataset', type=str, help='choose a dataset', default='THU
 parser.add_argument('--out_dir', type=str, help='output dir', default='./THUCNews')
 parser.add_argument('--learning_rate', type=float,help='learning rate?', default=2e-5)
 parser.add_argument('--pretrain', type=str, help='choose a pretrain model', default='bert_pretrain')
+parser.add_argument('--batch_size', type=int, help='mini-batch', default=16)
+parser.add_argument('--k_fold', type=int, help='k_fold', default=10)
 args = parser.parse_args()
 
 if __name__ == '__main__':

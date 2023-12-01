@@ -12,10 +12,10 @@ class Config(object):
         self.model_name = 'bert'
         self.save_path = args.out_dir + '/saved_dict/'
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')  # 设备
-        self.k_fold = 10
+        self.k_fold = args.k_fold
         self.num_classes = 3
         self.num_epochs = 7  # epoch数
-        self.batch_size = 16  # mini-batch大小
+        self.batch_size = args.batch_size  # mini-batch大小
         self.pad_size = 512  # 每句话处理成的长度(短填长切)
         self.require_improvement = 1000  # 若超过1000batch效果还没提升，则提前结束训练
         self.learning_rate = args.learning_rate  # 学习率
