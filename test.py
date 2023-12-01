@@ -46,7 +46,6 @@ def load_dataset(titles, contents, ids, pad_size=512):
     return outs
 
 
-
 class DatasetIterater(object):
     def __init__(self, batches, batch_size, device):
         self.batch_size = 1
@@ -130,7 +129,7 @@ if __name__ == '__main__':
 
     def evaluate(model, iter, model_name):
         submit = [['id', 'label']]
-        model.load_state_dict(torch.load(config.save_path+model_name+'.ckpt'))
+        model.load_state_dict(torch.load(config.save_path + model_name + '.ckpt'))
         model.eval()
         with torch.no_grad():
             for (title, id) in iter:
@@ -138,11 +137,49 @@ if __name__ == '__main__':
                 predic = torch.max(outputs.data, 1)[1].cpu().numpy()
                 submit.append([id[0], predic[0]])
 
-        outfile = os.path.join(args.out_dir, model_name+".csv")
+        outfile = os.path.join(args.out_dir, model_name + ".csv")
         with open(outfile, "a", encoding='utf-8', newline='') as csvfile:
             writer = csv.writer(csvfile)
             for row in submit:
                 writer.writerow(row)
+
+
     test_iter = build_iterator(test, config)
     for i in range(config.k_fold):
         evaluate(model, test_iter, str(i))
+
+    # k fold vote
+    id = []
+    pred = []
+
+    dic = dict()
+    for i in range(config.k_fold):
+        index = 0
+        flag = True
+        with open(args.out_dir + '/' + str(i) + '.csv', 'r', encoding='utf-8') as f:
+            csv_reader = csv.reader(f)
+            for row in csv_reader:
+                if flag:
+                    flag = False
+                    continue
+                if i == 0:
+                    id.append(row[0])
+                    pred.append([row[1]])
+                else:
+                    if id[index] == row[0]:
+                        pred[index].append(row[1])
+                    else:
+                        print("error")
+                index += 1
+
+    data = []
+
+    for i in range(len(id)):
+        li = pred[i]
+        p = max(li, key=li.count)
+        data.append([id[i], p])
+
+    with open(args.out_dir + '/' + 'submit.csv', "a", encoding='utf-8', newline='') as csvfile:
+        writer = csv.writer(csvfile)
+        for row in data:
+            writer.writerow(row)
