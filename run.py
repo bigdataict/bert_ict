@@ -33,10 +33,14 @@ if __name__ == '__main__':
 
     print("Loading data...")
     trains, tests = build_dataset(config)
+    best_f1=[]
     for i in range(config.k_fold):
         train_iter = build_iterator(trains[i], config)
         test_iter = build_iterator(tests[i], config)
         # train
         print("No: "+str(i)+" fold")
         model = x.Model(config).to(config.device)
-        train(config, model, train_iter, test_iter, i)
+        best_f1.append(train(config, model, train_iter, test_iter, i))
+
+    msg = "The fold {0} has the best val_f1 {1:>5.4}."
+    print(msg.format(best_f1.index(max(best_f1)), max(best_f1)))

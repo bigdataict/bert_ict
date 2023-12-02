@@ -179,7 +179,8 @@ if __name__ == '__main__':
         p = max(li, key=li.count)
         data.append([id[i], p])
 
-    with open(args.out_dir + '/' + 'submit.csv', "a", encoding='utf-8', newline='') as csvfile:
+    with open(args.out_dir + '/' + 'pseu_'+args.pretrain+'.csv', "a", encoding='utf-8', newline='') as csvfile:
         writer = csv.writer(csvfile)
+        writer.writerow(['id', 'label'])
         for row in data:
             writer.writerow(row)

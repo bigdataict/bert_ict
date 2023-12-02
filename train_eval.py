@@ -70,7 +70,7 @@ def train(config, model, train_iter, test_iter, current_fold):
                     improve = ''
 
                 time_dif = get_time_dif(start_time)
-                msg = 'Iter: {0:>6},  Train Loss: {1:>5.2},  Train Acc: {2:>6.2%},  Val Loss: {3:>5.2},  Val Acc: {4:>6.2%},  Val f1: {5:>6.2%},  Time: {6} {7}'
+                msg = 'Iter: {0:>6},  Train Loss: {1:>5.2},  Train Acc: {2:>6.2%},  Val Loss: {3:>5.2},  Val Acc: {4:>6.2%},  Val f1: {5:>5.4},  Time: {6} {7}'
                 print(msg.format(total_batch, loss.item(), train_acc, test_loss, test_acc, test_f1, time_dif, improve))
                 model.train()
             total_batch += 1
@@ -81,6 +81,7 @@ def train(config, model, train_iter, test_iter, current_fold):
                 break
         if flag:
             break
+    return test_best_f1
 
 
 def evaluate(model, data_iter):
